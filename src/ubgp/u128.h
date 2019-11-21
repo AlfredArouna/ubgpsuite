@@ -189,7 +189,6 @@ static inline u128 u128neg(u128 u)
 #if defined(__GNUC__) && !defined(UBGP_C_U128)
     u.u128 = -u.u128;
 #else
-    // don't use UINT128_ZERO, otherwise it wouldn't be constfunc!
     const u128 zero = { .upper = 0, .lower = 0 };
     u = u128sub(zero, u);
 
