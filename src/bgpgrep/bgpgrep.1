@@ -1,0 +1,446 @@
+.TH bgpgrep 1 2019-11-20 bgpgrep "User Commands"
+.SH NAME
+bgpgrep \- scan MRT dumps and filter their content.
+.
+.SH SYNOPSIS
+\fBbgpgrep\fR [ \-cdlL ] [ \-mM \fICOMMSTRING\fR ] [ \-pP \fIPATHEXPR\fR ] [ \-i \fIADDR\fR ] [ \-I \fIFILE\fR ] [ \-a \fIAS\fR ] [ \-A \fIFILE\fR ] [ \-e \fIPREFIX\fR ] [ \-E \fIFILE\fR ] [ \-t \fIATTR_CODE\fR ] [ \-T \fIFILE\fR ]  [ \-o \fIFILE\fR ]
+[ \fIFILE\fR... ]
+.br
+\fBbgpgrep\fR [ \-cdlL ] [ \-mM \fICOMMSTRING\fR ] [ \-pP \fIPATHEXPR\fR ] [ \-i \fIADDR\fR ] [ \-I \fIFILE\fR ] [ \-a \fIAS\fR ] [ \-A \fIFILE\fR ] [ \-s \fIPREFIX\fR ] [ \-S \fIFILE\fR ] [ \-t \fIATTR_CODE\fR ] [ \-T \fIFILE\fR ]  [ \-o \fIFILE\fR ]
+[ \fIFILE\fR... ]
+.br
+\fBbgpgrep\fR [ \-cdlL ] [ \-mM \fICOMMSTRING\fR ] [ \-pP \fIPATHEXPR\fR ] [ \-i \fIADDR\fR ] [ \-I \fIFILE\fR ] [ \-a \fIAS\fR ] [ \-A \fIFILE\fR ] [ \-u \fIPREFIX\fR ] [ \-U \fIFILE\fR ] [ \-t \fIATTR_CODE\fR ] [ \-T \fIFILE\fR ]  [ \-o \fIFILE\fR ]
+[ \fIFILE\fR... ]
+.br
+\fBbgpgrep\fR [ \-cdlL ] [ \-mM \fICOMMSTRING\fR ] [ \-pP \fIPATHEXPR\fR ] [ \-i \fIADDR\fR ] [ \-I \fIFILE\fR ] [ \-a \fIAS\fR ] [ \-A \fIFILE\fR ] [ \-r \fIPREFIX\fR ] [ \-R \fIFILE\fR ] [ \-t \fIATTR_CODE\fR ] [ \-T \fIFILE\fR ]  [ \-o \fIFILE\fR ]
+[ \fIFILE\fR... ]
+.
+.SH DESCRIPTION
+.B bgpgrep
+is a performance oriented utility to parse MRT RIB
+snapshots and updates, with filtering capability.
+The
+.B bgpgrep
+utility reads one or more MRT snapshot or updates, applies a set of filtering
+rules to every packet and dumps each one of them respecting the specified criteria in a human
+readable format. Packets discarded by the rules are not printed.
+By default,
+.B bgpgrep
+reads the data from its standard input and dumps to the
+standard output, and performs no filtering.
+This behavior can be changed with the appropriate arguments.
+While reading each MRT dump,
+.B bgpgrep
+reconstructs the original BGP packet sequence and applies the filtering rules to each one of them.
+The filtering process is divided in different phases:
+.IP
+.PD 0
+.IP 1 5
+Filtering by feeder, which may discard a packet based on the feeder that announce
+.IP 2 5
+Filtering by attributes, which may discard a packet based on the presence of specific attributes of interest.
+.IP 3 5
+Filtering by AS PATH, which may discard a packet based on the routes it contains.
+.IP 4 5
+Filtering by networks, which may discard a packet based on the networks contained in its NLRI and WITHDRAWN fields.
+.PD
+.PP
+The phases are applied in sequence, and multiple criteria may be specified for each one of them, resulting
+in ORing together multiple conditions. See the \fBEXAMPLE\fR section for examples of such logic.
+.
+.PD
+.PP
+.SS Options
+.TP
+.B \-a <feeder AS>
+Print only entries coming from the given feeder AS.
+.TP
+.B -A <file>
+Print only entries coming from the feeder ASes contained in a template file,
+see \fBFILTER TEMPLATE FILES\fR section for file format details.
+.TP
+.B -c
+Dump packets in hexadecimal C array format, with 80 columns line wrapping.
+.TP
+.B \-d
+Debug option, dumps filtering engine bytecode to standard error in human readable format.
+.TP
+.B \-e <subnet>
+Print only entries containing the exact given subnet of interest.
+.TP
+.B \-E <file>
+Print only entries containing the exact subnets of interest contained in file,
+see \fBFILTER TEMPLATE FILES\fR section for file format details.
+.TP
+.B \-f
+Print only every feeder IP in the RIB provided.
+.TP
+.B \-i <feeder IP>
+Print only entries coming from a given feeder IP.
+.TP
+.B \-I <file>
+Print only entries coming from the feeder IP contained in file,
+see \fBFILTER TEMPLATE FILES\fR section for file format details.
+.TP
+.B \-l
+Print only entries containing loops in their AS PATH.
+.TP
+.B \-L
+Print only entries without a loop in their AS PATH.
+.TP
+.B \-o <file>
+Define the output file to store information (defaults to standard output).
+If this option is specified multiple times, the last one prevails over the others.
+.TP
+.B \-m <communities string>
+Print only entries which COMMUNITY attribute contains the provided communities. The
+order is not relevant.
+Communities must be specified in canonical form and space separated, for example: "1234:567 8910:1112".
+Well-known communities can also be specified according to IANA (see \fBSTANDARDS\fR), for example "NO_EXPORT".
+.TP
+.B \-M <communities string>
+Same as
+.B \-m
+, but only prints entries which COMMUNITY attribute does \fBnot\fR contain the provided communities.
+.TP
+.B \-p <path expression>
+Print only entries which AS PATH matches the provided expression.
+This option accepts expressions in a heavily simplified format resembling POSIX regular expressions.
+See section \fBAS PATH MATCH EXPRESSIONS\fR for more informations on the accepted expression format.
+.TP
+.B \-P <path expression>
+Same as
+.B \-p
+, but only prints entries which AS PATH does \fBnot\fR match the provided expression.
+.TP
+.B \-r <subnet>
+Print only entries containing subnets related to the given subnet of interest.
+.TP
+.B \-R <file>
+Print only entries containing subnets related to the subnets of interest contained in file,
+see \fBFILTER TEMPLATE FILES\fR section for file format details.
+.TP
+.B \-s <subnet>
+Print only entries containing subnets included to the given subnet of interest.
+.TP
+.B \-S <file>
+Print only entries containing subnets included to the subnets of interest contained in file,
+see \fBFILTER TEMPLATE FILES\fR section for file format details.
+.TP
+.B \-t <attribute code>
+Print only entries containing the attribute of interest.
+The accepted format to specify an attribute code may be either a straight numeric code, or
+a string representation such as
+.B AS_PATH
+to signify the attribute code 2.
+.TP
+.B \-T <file>
+Print only entries containing the attributes of interest contained in file,
+see \fBFILTER TEMPLATE FILES\fR section for file format details.
+.TP
+.B \-u <subnet>
+Print only entries containing subnets including (or equal) to the given subnet of interest.
+.TP
+.B \-U <file>
+Print only entries containing subnets including (or equal) to the subnets of interest contained in file,
+see \fBFILTER TEMPLATE FILES\fR section for file format details.
+.
+.PD
+.PP
+.SS Operands
+The following operands are supported:
+.TP
+.B FILE
+A pathname of an input file. If no file operands are specified, the standard input is used.
+If a file is '-',
+.B bgpgrep
+shall read from the standard input at that point in the sequence.
+.B bgpgrep
+does not close and reopen standard input when it is referenced in this way, but accepts multiple occurrences of '-' as a file operand.
+See the \fBINPUT FILES\fR section for details on the supported file formats.
+.
+.PD
+.PP
+.SS Exit Status
+The following exit values are returned:
+.TP
+.B 0
+All input data was scanned successfully, file operands contained no errors and output has been produced correctly.
+.TP
+.B >0
+Errors were detected in input data, an write error occurred, or an unexpected error occurred (such as out of memory errors).
+.
+.PD
+.PP
+.SH STDIN
+The standard input shall be used only if no file operands are specified, or if a file operand is '\-'.
+Note that whenever \fBbgpgrep\fR reads from standard input, the input data is assumed to be uncompressed, whereas input files may come
+in compressed formats. See the \fBINPUT FILES\fR section.
+.
+.PD
+.PP
+.SH INPUT FILES
+.B bgpgrep
+supports the most common MRT dump formats, either in raw uncompressed form, or compressed using
+.IR gzip (1)
+,
+.IR bzip2 (1)
+or
+.IR xz (1)
+performing the appropriate decompression on the fly.
+The pathname extension is used to determine the compression algorithm.
+.
+.PD
+.SH STDOUT
+The standard output shall contain a human readable text representation of the BGP packets that respect the filter criteria
+specified by the command options, nothing else shall be written to the standard output.
+If the standard output is a regular file, and is the same file as any of the input file operands, the implementation may treat this as an error.
+If a different output file is specified via the
+.B \-o
+option, then the standard output is not used and is instead redirected to that file.
+The default output format used by
+.B bgpgrep
+is documented in the \fBLINE ORIENTED OUTPUT\fR section.
+.
+.PD
+.SH STDERR
+The standard error is used only for diagnostic messages and error reporting.
+Any packet dumping happens exclusively on standard output.
+.
+.PD
+.PP
+.SH AS PATH MATCH EXPRESSIONS
+AS PATH match expressions (accepted by
+.B \-p
+and
+.B \-P
+options) are defined by a simplified format
+based on typical conventions estabilished by the POSIX regular expressions.
+The most basic example is the generic AS PATH matching, an expression such as:
+.br
+.B bgpgrep\ \-p\ "1\ 2"
+.RE
+matches any packet whose AS PATH crosses link 1 2. The 1 2 link may appear anywhere in the AS PATH.
+The expression can be arbitrarily complex, for example:
+.br
+.B bgpgrep\ \-p\ "1\ 2\ 3\ 4\ 5\ 6\ 7\ 8"
+.RE
+matches any packet with the corresponding AS subsequence appearing anywhere in its AS PATH.
+A '?' (question mark) can be placed anywhere in the expression to signal the fact that any AS number may
+appear in that position, for example:
+.br
+.B bgpgrep\ \-p\ "1\ ?\ 3"
+.RE
+matches any packet whose AS PATH contains a subsequence of length 3, whose first AS is 1 and the last one is 3.
+.P
+The matching expressions may be constrained to operate to the beginning or the end of the AS PATH.
+By prepending '^' (caret) to the expression, the following AS numbers are required to appear at the beginning of the path.
+For example:
+.br
+.B bgpgrep\ \-p\ "^1\ 2"
+.RE
+matches any packet whose AS PATH starts with the link 1 2.
+In a similar fashion, the expression can be forced to match at the end of the path by appending a '$' (dollar sign) at the end of it.
+.br
+.B bgpgrep\ \-p\ "1\ 2$"
+.RE
+matches any packet whose AS PATH ends with the link 1 2.
+A '?' may still be used to match any AS number in the corresponding position, for example:
+.br
+.B bgpgrep\ \-p\ "1\ ?$"
+.RE
+matches any packet whose AS PATH is ending with the second to last AS number being 1.
+The '^' and '$' symbols may be used to create exact matches, such as:
+.br
+.B bgpgrep\ \-p\ "^1\ 2\ 3\ 4$"
+.RE
+matches any packet whose AS PATH is exactly 1 2 3 4.
+.br
+.B bgpgrep\ \-p\ "^1\ 2\ ?\ 4$"
+.RE
+matches any packet whose AS PATH starts with 1 2 and ends with 4, but may have any AS number
+in the second to last position.
+A '*' (star) may be used to match zero or more AS numbers in the position where it appears.
+Note that if the intended usage is to match \fBone\fR or more AS numbers, then a '?' symbol
+should be used before the '*'. For example:
+.br
+.B bgpgrep\ \-p\ "^1\ 2\ *\ 4$"
+.RE
+matches any packet whose AS PATH starts with 1 2, then contains \fBzero\fR or more AS numbers and terminates with 4.
+.br
+.B bgpgrep\ \-p\ "^1\ 2\ ?\ *\ 4$"
+.RE
+matches any packet whose AS PATH starts with 1 2, then contains \fBone\fR or more AS numbers and terminates with 4.
+The metacharacters explained above may be mixed to create arbitrarily complex expressions.
+.
+.PD
+.PP
+.SH FILTER TEMPLATE FILES
+A number of options allows for variants specifying a file to read values (for example the
+.B \-e
+option provides a
+.B \-E
+variant to read each network from a file). This provides means to create
+filter templates that may be slightly customized by additional direct command line arguments.
+For example
+.B bgpgrep
+may be used to filter a certain set of networks that are always interesting, plus a number of varying
+networks. To avoid typing the entire set of networks, it can be written to a \fBtemplate file\fR and
+loaded using the appropriate option:
+.br
+.B bgpgrep\ \-E\ template.txt\ \-e\ "192.65.121.0/24"
+.RE
+The template file is expected to contain a space separated list of tokens in the same format as
+the ones expected by the non-template variant of the same option. Note that newlines are still considered
+spaces.
+Comments may be freely inserted in the file by prepending them with the '#' (hash) character, anything following
+the '#' is ignored up to the next newline.
+Tokens containing spaces may be enclosed in '"' (quotes) to preserve them.
+Template files support the usual C-style character escape sequences.
+.
+.PD
+.SH LINE ORIENTED OUTPUT
+This output splits the content of MRT data into multiple lines, each one representing either a
+.B ROUTE INFORMATION
+or a 
+.B BGP SESSION STATUS.
+
+.br
+The
+.B ROUTE INFORMATION
+can be either an announcement, a route withdrawn or a routing table (RIB) snapshot.
+Each ROUTE INFORMATION line is a sequence of the following pipe-separated fields:
+.br
+TYPE|SUBNETS|PATH ATTRIBUTES|SOURCE|TIMESTAMP|ASN 32 BIT
+.br
+.TP
+.B TYPE
+Represents the type of the route information. Can be either '=' (RIB snapshot entry), '+' (announcement) or '-' (withdrawn).
+.TP
+.B SUBNETS
+The list of subnets carried into the message. If the information is an announcement, then this field contains the subnets carried into the NLRI and MP_REACH_NLRI field of BGP.
+If the information is a withdrawn, then this field contains the subnets carried into the WITHDRAWN_ROUTES and MP_UNREACH_NLRI field of BGP. If the information is a RIB snapshot entry, this field contains the subnet related to the current RIB entry.
+Multiple subnets are separated by a single space.
+.TP
+.B PATH ATTRIBUTES
+This is a pipe-separated list of the most common BGP path attributes characterizing a route.
+Note that each field may be empty if the related path attribute is not present in the collected BGP data (e.g. route announcements without optional attributes, or route withdrawals).
+The list of path attributes currently displayed is the following:
+.br
+AS_PATH|NEXT_HOP|ORIGIN|ATOMIC_AGGREGATE|AGGREGATOR|COMMUNITIES
+.IP
+If the BGP data source does not support ASN 32 bit capability then the AS_PATH field contains the result of the merging procedure between the AS_PATH and AS4_PATH attributes according to RFC 4893, and the AGGREGATOR field contains the AS4_AGGREGATOR attribute (if present). Otherwise, AS_PATH and AGGREGATOR fields contain their respective attributes.
+.IP
+NEXT_HOP field contains either the NEXT_HOP attribute (IPv4) or the next hop address(es) listed into the MP_REACH_NLRI attribute (IPv6), as described in RFC 4760.
+.IP
+ORIGIN contains the homonym attribute.
+.IP
+ATOMIC_AGGREGATE field contains "AT" if the attribute is set, nothing otherwise.
+.IP
+COMMUNITIES field contains both COMMUNITY (RFC 1997) and LARGE_COMMUNITY (RFC 8092) displayed with their canonical representation. Well-known communities are displayed according to their name as described in IANA website (e.g. NO_EXPORT instead of 65535:65281).
+.TP
+.B SOURCE
+Represents the BGP data source. If the source uses the ADD-PATH extension (RFC 7911) to announce BGP data, then the source is displayed as [IP ASN path-ID], otherwise as [IP ASN].
+.TP
+.B TIMESTAMP
+Indicates the UNIX epoch time at which the information was collected. In the event of an extended timestamp, the UNIX epoch time is followed by a '.' and the microsecond precision
+is appended to it.
+.TP
+.B ASN 32 bit
+If 1 indicates that the source of BGP data has ASN 32 bit capability, 0 otherwise.
+.br
+.PP
+The 
+.B BGP SESSION STATUS
+is encoded as a BGP session state change according to RFC 6936 (Section 4.4.1).
+The format of a line representing a state change is the following:
+.br
+#|OLD_STATE-NEW_STATE|||||||SOURCE|TIMESTAMP|ASN 32 BIT
+
+.TP
+.B OLD_STATE-NEW_STATE
+represent respectively the old and new state of the BGP session according to the BGP Finite State Machine states.
+.TP
+.B SOURCE, TIMESTAMP, ASN 32 BIT
+assume the same meaning as in the
+.B ROUTING INFORMATION
+case.
+.LP
+The number of pipes is the same as in the
+.B ROUTING INFORMATION
+case to ease the parsing.
+.
+.PD
+.PP
+.SH EXAMPLES
+.TP 3
+BGP data announced by feeder AS199036:
+.B bgpgrep\ \-a\ "199036"
+.br
+.TP
+Every packet whose first AS of AS PATH is AS199036
+.B bgpgrep\ \-p\ "^199036"
+.br
+.TP
+Every packet whose last AS of AS PATH is AS3333:
+.B bgpgrep\ \-p\ "3333$"
+.br
+.TP
+Every packet whose AS PATH crosses link AS174 AS3356:
+.B bgpgrep\ \-p\ "174\ 3356"
+.br
+.TP
+Subnets of 193.0.0.0/16 or 2001:67c::/32 destinated to AS3333:
+.B bgpgrep\ \-s\ "193.0.0.0/16"\ \-s "2001:67c::/32"\ \-p\ "3333$"
+.br
+.TP
+Every packet whose AS PATH contains loops:
+.B bgpgrep\ \-l
+.br
+.TP
+Subnets of 192.65.0.0/16 crossing link AS174 AS137:
+.B bgpgrep\ \-s\ "192.65.0.0/16"\ \-p\ "174 137"
+.
+.PD
+.PP
+.SH SEE ALSO
+.BR grep (1)
+.BR awk (1)
+.
+.PD
+.PP
+.SH STANDARDS
+The
+.B bgpgrep
+utility conforms to:
+.PP
+.PD 0
+.IP 1 3
+RFC\ 6396 \- Multi-Threaded Routing Toolkit (MRT) Routing Information Export Format
+.IP 2 3
+RFC\ 8050 \- Multi-Threaded Routing Toolkit (MRT) Routing Information Export Format with BGP Additional Path Extensions
+.IP 3 3
+IANA Border Gateway Protocol (BGP) Well-known Communities. Updated list of well-known communities as of 2018-03-07.
+.PD
+.PP
+.SH AUTHOR
+.B bgpgrep
+was written by
+.UR lorenzo.cogotti@\:alphacogs.\:com
+Lorenzo Cogotti
+.UE .
+With significant contributions by
+.UR luca.sani@\:iit.\:cnr.\:it
+Luca Sani
+.UE ,
+.UR alessandro.improta@\:iit.\:cnr.\:it
+Alessandro Improta
+.UE
+and
+.UR mulas.federico.w@\:gmail.\:com
+Federico Mulas
+.UE .
+.B bgpgrep
+was heavily influenced by
+.B MRT_data_reader
+developed at the Institute of Informatics and Telematics of the Italian National Research Council (IIT-CNR).

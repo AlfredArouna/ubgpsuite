@@ -1,0 +1,7 @@
+option('build-docs', type : 'boolean', value : true, description : 'Generate docs using hotdoc')
+option('enable-lz4', type : 'feature', value : 'auto', description : 'Enable reading LZ4 compressed data')
+option('enable-lzma', type : 'feature', value : 'auto', description : 'Enable reading LZMA compressed data')
+option('use-c-u128', type : 'boolean', value : false, description : 'Force C-only implementation of 128-bit unsigned integers in ubgp')
+option('build-examples', type : 'boolean', value : false, description : 'Build API example programs')
+option('build-tests', type : 'boolean', value : false, description : 'Build test programs using CUnit')
+option('build-bgpgrep', type : 'boolean', value : true, description : 'Build bgpgrep MRT/BGP parsing and filting utility')
