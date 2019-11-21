@@ -47,7 +47,7 @@ static int patcompwithmask(const netaddr_t *addr, const netaddr_t *dest, int mas
 {
     if (memcmp(&addr->bytes[0], &dest->bytes[0], mask / 8) == 0) {
         int n = mask / 8;
-        int m = ((unsigned int) (~0) << (8 - (mask % 8)));
+        int m = ((uint) (~0) << (8 - (mask % 8)));
 
         if (((mask & 0x7) == 0) || ((addr->bytes[n] & m) == (dest->bytes[n] & m)))
             return 1;
