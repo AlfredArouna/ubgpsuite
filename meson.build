@@ -95,6 +95,27 @@ if get_option('build-tests')
     test('core', core_test)
 endif
 if get_option('build-benchmarks')
+    cbench_dep = dependency('cbench', static : true, fallback : [ 'cbench', 'cbench_dep' ])
+
+        core_bench = executable('core_bench',
+        sources : [
+            'src/bench/core/main.c',
+            'src/bench/core/strutil_b.c',
+            'src/bench/core/patriciatrie_b.c',
+            'src/bench/core/netaddr_b.c'
+        ],
+        dependencies : [ ubgp_dep, cbench_dep ]
+    )
+    benchmark('core', core_bench)
+
+    bgp_bench = executable('bgp_bench',
+        sources : [
+            'src/bench/bgp/main.c',
+            'src/bench/bgp/update_b.c'
+        ],
+        dependencies : [ ubgp_dep, cbench_dep ]
+    )
+    benchmark('bgp', bgp_bench)
 endif
 
 if get_option('build-docs')
