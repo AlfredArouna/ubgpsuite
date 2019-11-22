@@ -331,6 +331,8 @@ typedef struct umrt_msg {
     uint32_t *pitab;
     uint16_t picount;
 
+    // these fields must come at the end of this struct!
+
     byte fastbuf[MRTBUFSIZ];  // Fast buffer to avoid malloc()s.
     union {
         uint32_t fastpitab[MRTPRESRVBUFSIZ / sizeof(uint32_t)];
@@ -338,39 +340,60 @@ typedef struct umrt_msg {
     };
 } umrt_msg_s;
 
-bool ismrtext(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) PUREFUNC bool ismrtext(const umrt_msg_s *msg);
 
-bool isbgpwrapper(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) PUREFUNC bool isbgpwrapper(const umrt_msg_s *msg);
 
-bool ismrtasn32bit(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) PUREFUNC bool ismrtasn32bit(const umrt_msg_s *msg);
 
-bool ismrtaddpath(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) PUREFUNC bool ismrtaddpath(const umrt_msg_s *msg);
 
-bool ismrtrib(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) PUREFUNC bool ismrtrib(const umrt_msg_s *msg);
 
-umrt_err setmrtpi(umrt_msg_s *msg, umrt_msg_s *pi);
 
-umrt_err mrterror(umrt_msg_s *msg);
+/**
+ * mrtcopy:
+ * @dst: copy destination
+ * @src: copy source
+ *
+ * Copies @src into @dst, arguments must not overlap.
+ *
+ * Returns: copied message, %NULL on out of memory.
+ */
+UBGP_API umrt_msg_s *mrtcopy(umrt_msg_s *restrict       dst,
+                             const umrt_msg_s *restrict src);
 
-umrt_err mrtclose(umrt_msg_s *msg);
+/**
+ * setmrtpi:
+ * @msg: an #umrt_msg_s
+ * @msg: an #umrt_msg_s of type %MRT_TABLE_DUMPV2 and subtype
+ *       %MRT_TABLE_DUMPV2_PEER_INDEX_TABLE.
+ *
+ * Set MRT message reference PEER_INDEX table.
+ */
+UBGP_API CHECK_NONNULL(1, 2) umrt_err setmrtpi(umrt_msg_s *msg, umrt_msg_s *pi);
 
-umrt_err setmrtread(umrt_msg_s *msg, const void *data, size_t n);
+UBGP_API CHECK_NONNULL(1) PUREFUNC umrt_err mrterror(const umrt_msg_s *msg);
 
-umrt_err setmrtreadfd(umrt_msg_s *msg, int fd);
+UBGP_API CHECK_NONNULL(1) umrt_err mrtclose(umrt_msg_s *msg);
 
-umrt_err setmrtreadfrom(umrt_msg_s *msg, io_rw_t *io);
+UBGP_API CHECK_NONNULL(1) umrt_err setmrtread(umrt_msg_s *msg, const void *data, size_t n);
+
+UBGP_API CHECK_NONNULL(1) umrt_err setmrtreadfd(umrt_msg_s *msg, int fd);
+
+UBGP_API CHECK_NONNULL(1, 2) umrt_err setmrtreadfrom(umrt_msg_s *msg, io_rw_t *io);
 
 // header
 
-mrt_header_t *getmrtheader(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) mrt_header_t *getmrtheader(umrt_msg_s *msg);
 
 // Peer Index
 
-struct in_addr getpicollector(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) struct in_addr getpicollector(umrt_msg_s *msg);
 
-size_t getpiviewname(umrt_msg_s *msg, char *buf, size_t n);
+UBGP_API CHECK_NONNULL(1) size_t getpiviewname(umrt_msg_s *msg, char *buf, size_t n);
 
-umrt_err setpeerents(umrt_msg_s *msg, const void *buf, size_t n);
+UBGP_API CHECK_NONNULL(1) umrt_err setpeerents(umrt_msg_s *msg, const void *buf, size_t n);
 
 /**
  * getpeerents:
@@ -384,21 +407,21 @@ umrt_err setpeerents(umrt_msg_s *msg, const void *buf, size_t n);
  *
  * Returns: raw peer entities bytes inside @msg, %NULL on error.
  */
-void *getpeerents(umrt_msg_s *msg, size_t *pcount, size_t *pn);
+UBGP_API CHECK_NONNULL(1) void *getpeerents(umrt_msg_s *msg, size_t *pcount, size_t *pn);
 
-umrt_err startpeerents(umrt_msg_s *msg, size_t *pcount);
+UBGP_API CHECK_NONNULL(1) umrt_err startpeerents(umrt_msg_s *msg, size_t *pcount);
 
-peer_entry_t *nextpeerent(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) peer_entry_t *nextpeerent(umrt_msg_s *msg);
 
-umrt_err putpeerent(umrt_msg_s *msg, const peer_entry_t *pe);
+UBGP_API CHECK_NONNULL(1, 2) umrt_err putpeerent(umrt_msg_s *msg, const peer_entry_t *pe);
 
-umrt_err endpeerents(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) umrt_err endpeerents(umrt_msg_s *msg);
 
 // RIB subtypes
 
-umrt_err setribpi(umrt_msg_s *msg, umrt_msg_s *pi);
+UBGP_API CHECK_NONNULL(1, 2) umrt_err setribpi(umrt_msg_s *msg, umrt_msg_s *pi);
 
-umrt_err setribents(umrt_msg_s *msg, const void *buf, size_t n);
+UBGP_API CHECK_NONNULL(1) umrt_err setribents(umrt_msg_s *msg, const void *buf, size_t n);
 
 /**
  * getribents:
@@ -412,27 +435,33 @@ umrt_err setribents(umrt_msg_s *msg, const void *buf, size_t n);
  *
  * Returns: raw RIB entities bytes inside @msg, %NULL on error.
  */
-void *getribents(umrt_msg_s *msg, size_t *pcount, size_t *pn);
+UBGP_API CHECK_NONNULL(1) void *getribents(umrt_msg_s *msg, size_t *pcount, size_t *pn);
 
-rib_header_t *startribents(umrt_msg_s *msg, size_t *pcount);
+UBGP_API CHECK_NONNULL(1) rib_header_t *startribents(umrt_msg_s *msg, size_t *pcount);
 
-rib_entry_t *nextribent(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) rib_entry_t *nextribent(umrt_msg_s *msg);
 
-umrt_err putribent(umrt_msg_s *msg, const rib_entry_t *pe, uint16_t idx, time_t seconds, const bgpattr_t *attrs, size_t attrs_size);
+UBGP_API CHECK_NONNULL(1, 2, 5)
+umrt_err putribent(umrt_msg_s        *msg,
+                   const rib_entry_t *pe,
+                   uint16_t           idx,
+                   time_t             seconds,
+                   const bgpattr_t   *attrs,
+                   size_t             attrs_size);
 
-umrt_err endribents(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) umrt_err endribents(umrt_msg_s *msg);
 
 // BGP4MP
 
-bgp4mp_header_t *getbgp4mpheader(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) bgp4mp_header_t *getbgp4mpheader(umrt_msg_s *msg);
 
-void *unwrapbgp4mp(umrt_msg_s *msg, size_t *pn);
+UBGP_API CHECK_NONNULL(1) void *unwrapbgp4mp(umrt_msg_s *msg, size_t *pn);
 
 // ZEBRA BGP
 
-zebra_header_t *getzebraheader(umrt_msg_s *msg);
+UBGP_API CHECK_NONNULL(1) zebra_header_t *getzebraheader(umrt_msg_s *msg);
 
-void *unwrapzebra(umrt_msg_s *msg, size_t *pn);
+UBGP_API CHECK_NONNULL(1) void *unwrapzebra(umrt_msg_s *msg, size_t *pn);
 
 #endif
 

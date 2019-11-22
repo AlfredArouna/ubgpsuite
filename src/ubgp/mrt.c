@@ -156,9 +156,58 @@ static uint mrtflags(const mrt_header_t *hdr)
     return masktab[SHIFT(hdr->type)][hdr->subtype];
 }
 
-UBGP_API umrt_err mrterror(umrt_msg_s *msg)
+UBGP_API umrt_err mrterror(const umrt_msg_s *msg)
 {
     return msg->err;
+}
+
+UBGP_API umrt_msg_s *mrtcopy(umrt_msg_s *restrict       dst,
+                             const umrt_msg_s *restrict src)
+{
+    // copy the initial portion of the structure, excluding the actual
+    // bytes inside `src`
+    size_t size = offsetof(umrt_msg_s, fastbuf);
+    memcpy(dst, src, size);
+    // don't allow fail path to free `src` data
+    dst->pitab = NULL;
+    dst->buf   = NULL;
+
+    // now also copy the actual packet data and aux tables
+    if (src->pitab) {
+        // duplicate peer index table
+        if (dst->picount <= countof(dst->fastpitab))
+            dst->pitab = dst->fastpitab;
+        else {
+            dst->pitab = malloc(dst->picount * sizeof(*dst->pitab));
+            if (unlikely(!dst->pitab))
+                goto fail;
+        }
+
+        memcpy(dst->pitab, src->pitab, dst->picount * sizeof(*dst->pitab));
+    }
+
+    size_t n = dst->hdr.len + sizeof(dst->hdr);
+    if (n <= sizeof(dst->fastbuf))
+        dst->buf = dst->fastbuf;
+    else {
+        dst->buf = malloc(n);
+        if (unlikely(!dst->buf))
+            goto fail;
+    }
+
+    memcpy(dst->buf, src->buf, n);
+
+    // reset refcount to 1
+    dst->refcount = 1;
+    return dst;
+
+fail:
+    if (dst->pitab != dst->fastpitab)
+        free(dst->pitab);
+    if (dst->buf != dst->fastbuf)
+        free(dst->buf);
+
+    return NULL;
 }
 
 // read section
@@ -229,27 +278,27 @@ static umrt_err endpending(umrt_msg_s *msg)
     return endpeerents(msg);
 }
 
-UBGP_API bool ismrtext(umrt_msg_s *msg)
+UBGP_API bool ismrtext(const umrt_msg_s *msg)
 {
     return (msg->flags & (F_RD | F_IS_EXT)) == (F_RD | F_IS_EXT);
 }
 
-UBGP_API bool isbgpwrapper(umrt_msg_s* msg)
+UBGP_API bool isbgpwrapper(const umrt_msg_s* msg)
 {
     return (msg->flags & (F_RD | F_WRAPS_BGP)) == (F_RD | F_WRAPS_BGP);
 }
 
-UBGP_API bool ismrtrib(umrt_msg_s *msg)
+UBGP_API bool ismrtrib(const umrt_msg_s *msg)
 {
     return (msg->flags & (F_RD | F_NEEDS_PI)) == (F_RD | F_NEEDS_PI);
 }
 
-UBGP_API bool ismrtasn32bit(umrt_msg_s *msg)
+UBGP_API bool ismrtasn32bit(const umrt_msg_s *msg)
 {
     return (msg->flags & F_AS32) != 0;
 }
 
-UBGP_API bool ismrtaddpath(umrt_msg_s *msg)
+UBGP_API bool ismrtaddpath(const umrt_msg_s *msg)
 {
     return (msg->flags & F_ADDPATH) != 0;
 }
