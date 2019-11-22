@@ -323,7 +323,9 @@ static process_result_t processtabledump(const char         *filename,
         if (unlikely(pkgseq != 0))
             eprintf("%s: warning, PEER_INDEX_TABLE is not the first record in file", filename);
 
-        memcpy(&curpi, &curmrt, sizeof(curpi));
+        if (unlikely(!mrtcopy(&curpi, &curmrt)))
+            exprintf(EXIT_FAILURE, "out of memory");
+
         seen_ribpi = true;
         break;
 
