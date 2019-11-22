@@ -118,12 +118,10 @@ if get_option('build-benchmarks')
     benchmark('bgp', bgp_bench)
 endif
 
-if get_option('build-docs')
-    if find_program('hotdoc', required : get_option('build-docs')).found()
-        subdir('docs')
-    else
-        message('Not building documentation as hotdoc was not found')
-    endif
+if find_program('hotdoc', required : get_option('build-docs')).found()
+    subdir('docs')
+elif get_option('build-docs').auto()
+    message('Not building documentation as hotdoc was not found')
 endif
 
 if get_option('build-bgpgrep')
