@@ -681,11 +681,8 @@ static size_t io_xzread(io_rw_t *io, void *dst, size_t n)
                 xz->err = errno;
                 break;
             }
-            if (nr == 0) {
-                // EOF
-                xz->action = LZMA_FINISH;
-                break;
-            }
+            if (nr == 0)
+                xz->action = LZMA_FINISH; // EOF
 
             str->next_in  = xz->buf;
             str->avail_in = nr;
