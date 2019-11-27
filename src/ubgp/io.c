@@ -660,6 +660,7 @@ typedef struct {
     lzma_ret err;
     int mode;  // either 'r' or 'w'
     int bufsiz;
+    lzma_action action;  // used only on read, forces LZMA_FINISH on EOF.
     lzma_stream stream;
     byte buf[];  // bufsiz large
 } io_xzstate;
@@ -680,15 +681,20 @@ static size_t io_xzread(io_rw_t *io, void *dst, size_t n)
                 xz->err = errno;
                 break;
             }
-            if (nr == 0)
-                break;  // EOF
+            if (nr == 0) {
+                // EOF
+                xz->action = LZMA_FINISH;
+                break;
+            }
 
-            str->next_in = xz->buf;
+            str->next_in  = xz->buf;
             str->avail_in = nr;
         }
 
-        lzma_ret err = lzma_code(str, LZMA_RUN);
-        if (unlikely(err != LZMA_OK && err != LZMA_STREAM_END)) {
+        lzma_ret err = lzma_code(str, xz->action);
+        if (unlikely(err == LZMA_STREAM_END))
+            break;  // NOTE: shouldn't happen for a stream to end before EOF...
+        if (unlikely(err != LZMA_OK)) {
             xz->err = err;
             break;
         }
@@ -718,7 +724,8 @@ static size_t io_xzwrite(io_rw_t *io, const void *src, size_t n)
             str->avail_out = xz->bufsiz;
         }
 
-        int err = lzma_code(str, LZMA_RUN);
+        // disregard xz->action on write, we will flush upon close()
+        lzma_ret err = lzma_code(str, LZMA_RUN);
         if (unlikely(err != LZMA_OK)) {
             xz->err = err;
             break;
@@ -793,14 +800,17 @@ UBGP_API io_rw_t *io_xzopen(int fd, size_t bufsiz, const char *mode, ...)
     xz->fd     = fd;
     xz->err    = LZMA_OK;
     xz->mode   = *mode++;
+    xz->action = LZMA_RUN;  // used only when reading
     xz->bufsiz = bufsiz;
 
     va_list va;
 
     va_start(va, mode);
     uint32_t compression = 6;
+    uint32_t flags = 0;
     switch (xz->mode) {
         case 'r':
+            flags |= LZMA_CONCATENATED;  // also handle concatenated xz
             break;
 
         case 'w':
@@ -823,7 +833,6 @@ UBGP_API io_rw_t *io_xzopen(int fd, size_t bufsiz, const char *mode, ...)
     // parse optional arguments
     char c;
     uint32_t presets = 0;
-    uint32_t flags = 0;
     uint64_t memusage = UINT64_MAX;
     lzma_check check = LZMA_CHECK_CRC64;
     while ((c = *mode++) != '\0') {
