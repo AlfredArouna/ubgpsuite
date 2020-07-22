@@ -15,6 +15,14 @@ can be used by a developer as usage reference for them.
 This suite is based on the BSD licensed work from the [Isolario Project](https://isolario.it),
 in particular [bgpscanner](https://gitlab.com/Isolario/bgpscanner) and [isocore](https://gitlab.com/Isolario/isocore).
 
+## Contacts
+
+An IRC channel is available for support and development discussions regarding
+`ubgpsuite` at `#ubgpsuite` on [freenode](https://freenode.net/).
+
+You can join with any IRC client or using a webclient:
+[![IRC channel](https://kiwiirc.com/buttons/chat.freenode.net:6667/ubgpsuite.png)](https://kiwiirc.com/client/chat.freenode.net:6667/?nick=guest|?&theme=cli#ubgpsuite)
+
 ## Building
 
 `ubgpsuite` uses [Meson](https://mesonbuild.com) to manage the build process.
