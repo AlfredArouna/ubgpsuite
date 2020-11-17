@@ -1,3 +1,10 @@
+# BGPGrep
+
+Simple GitHub clone from https://gitlab.com/AlphaCogs/ubgpsuite.git. Presentation about BGPgrep features and use cases is available [here](bgp_scanner.pdf)
+
+Original README follows...
+
+
 # Micro BGP Suite
 
 The micro BGP suite (`ubgpsuite` or `μbgpsuite`) is a performance oriented
